@@ -1,7 +1,12 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const dotenv = require('dotenv')
+dotenv.config()
+const Note = require('./models/note')
 const PORT = process.env.PORT || 8080
+
+
 
 const requestLogger = (request, response, next) => {
   console.log('Method:', request.method)
@@ -37,6 +42,12 @@ let notes = [
 
   app.get('/notes', (req, res)=> {
     res.json(notes)
+  })
+
+  app.get('/api/notes', (req, res) => { 
+    Note.find({}).then(notes => {
+      res.json(notes)
+    })
   })
 
   app.get('/notes/:id', (req, res) => {
@@ -75,5 +86,9 @@ let notes = [
   
     response.json(note)
   })
+
+  // eQfKy4xFCdsmhssz
+  // pamoladize10
+  // mongodb+srv://pamoladize10:eQfKy4xFCdsmhssz@cluster0.p0al7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 
 app.listen(PORT, ()=>console.log(`app listen on port ${PORT}`))
