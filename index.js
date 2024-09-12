@@ -15,10 +15,10 @@ const requestLogger = (request, response, next) => {
   console.log('---')
   next()
 }
+app.use(express.static('dist'))
 app.use(express.json())
 app.use(cors())
 app.use(requestLogger)
-app.use(express.static('dist'))
 
 
 let notes = [
@@ -67,7 +67,7 @@ let notes = [
     return String(maxId + 1)
   }
   
-  app.post('/notes', (request, response) => {
+  app.post('/api/notes', (request, response) => {
     const body = request.body
   
     if (!body.content) {
@@ -76,19 +76,60 @@ let notes = [
       })
     }
   
-    const note = {
+    const note = new Note({
       content: body.content,
       important: Boolean(body.important) || false,
-      id: generateId(),
-    }
-  
-    notes = notes.concat(note)
+    })
+    
+    note.save().then(savedNote=>response.json(savedNote))
   
     response.json(note)
   })
 
+  app.get('/api/notes/:id', (req, res, next) => {
+    const id = req.params.id
+    Note.findById(id).then(note=>{
+      if(note){
+        res.json(note)
+      }else{
+        res.status(494).end()
+      }
+    }).catch(err=>next(err))
+  })
+
+app.delete('/api/notes/:id', (req, res, next) => {
+  const id = req.params.id
+  Note.findByIdAndDelete(id)
+  .then(res=>res.status(204).end())
+  .catch(err=>next(err))
+})
+
+app.patch('/api/notes/:id', (req, res, next) => {
+  const id = req.params.id
+  const body = req.body
+  const note = {
+    content: body.content,
+    important: body.important
+  }
+  Note.findByIdAndUpdate(id,note,{new:true, validators:true, context:'query'})
+  .then(res=>res.status(201).json(res))
+  .catch(err=>next(err))
+})
+
   // eQfKy4xFCdsmhssz
   // pamoladize10
   // mongodb+srv://pamoladize10:eQfKy4xFCdsmhssz@cluster0.p0al7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-
+  const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+  
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' })
+    }else if (error.name === 'ValidationError') {
+      return response.status(400).json({ error: error.message })
+    } 
+  
+    next(error)
+  }
+  
+app.use(errorHandler)
 app.listen(PORT, ()=>console.log(`app listen on port ${PORT}`))
